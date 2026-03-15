@@ -34,6 +34,7 @@ jobs:
           VERSION: ${{ inputs.version }}
           REPOSITORY: ${{ github.repository }}
         run: |
+          $PSNativeCommandUseErrorActionPreference = $false
           gh release view "$env:VERSION" --repo "$env:REPOSITORY" *> $null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Release $env:VERSION already exists."
