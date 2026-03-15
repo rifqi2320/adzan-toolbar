@@ -124,21 +124,27 @@ internal sealed class SettingsForm : Form
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             AutoScroll = true,
-            BackColor = Color.Transparent
+            BackColor = Color.Transparent,
+            Padding = new Padding(0, 0, 4, 0)
         };
         panel.SuspendLayout();
 
         _countryComboBox = new ComboBox
         {
-            DropDownStyle = ComboBoxStyle.DropDown,
+            DropDownStyle = ComboBoxStyle.DropDownList,
             AutoCompleteMode = AutoCompleteMode.SuggestAppend,
             AutoCompleteSource = AutoCompleteSource.ListItems,
-            Dock = DockStyle.Top
+            IntegralHeight = false,
+            MaxDropDownItems = 14
         };
         _countryComboBox.Items.AddRange(LocationCatalog.GetCountries().Cast<object>().ToArray());
-        _countryComboBox.Text = _settings.Country;
+        _countryComboBox.SelectedItem = LocationCatalog.GetCountries()
+            .FirstOrDefault(country => string.Equals(country, _settings.Country, StringComparison.OrdinalIgnoreCase));
+        if (_countryComboBox.SelectedItem is null && _countryComboBox.Items.Count > 0)
+        {
+            _countryComboBox.SelectedItem = _countryComboBox.Items[0];
+        }
         _countryComboBox.SelectedIndexChanged += (_, _) => RefreshCitySuggestions();
-        _countryComboBox.TextChanged += (_, _) => RefreshCitySuggestions();
         IslamicTheme.StyleInput(_countryComboBox);
 
         _cityComboBox = new ComboBox
@@ -146,7 +152,8 @@ internal sealed class SettingsForm : Form
             DropDownStyle = ComboBoxStyle.DropDown,
             AutoCompleteMode = AutoCompleteMode.SuggestAppend,
             AutoCompleteSource = AutoCompleteSource.CustomSource,
-            Dock = DockStyle.Top
+            IntegralHeight = false,
+            MaxDropDownItems = 14
         };
         _cityComboBox.Text = _settings.City;
         IslamicTheme.StyleInput(_cityComboBox);
@@ -156,8 +163,7 @@ internal sealed class SettingsForm : Form
             Minimum = 0,
             Maximum = 120,
             Value = _settings.ReminderLeadMinutes,
-            Dock = DockStyle.Left,
-            Width = 120
+            Width = 140
         };
         IslamicTheme.StyleInput(_leadMinutesNumeric);
 
@@ -173,7 +179,7 @@ internal sealed class SettingsForm : Form
             AutoSize = true,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
-            Margin = new Padding(0, 4, 0, 8),
+            Margin = new Padding(0),
             BackColor = Color.Transparent
         };
         prayerPanel.Controls.AddRange(
@@ -187,43 +193,48 @@ internal sealed class SettingsForm : Form
         IslamicTheme.StyleFlatActionButton(_refreshButton);
         _refreshButton.Click += async (_, _) => await LoadWeekAsync().ConfigureAwait(true);
 
-        var metaLabel = new Label
-        {
-            Text = "Method 20 · Kemenag Indonesia · 30 sec refresh",
-            AutoSize = true,
-            ForeColor = IslamicTheme.Slate,
-            Font = IslamicTheme.BodyFont(9.5f),
-            Margin = new Padding(0, 10, 0, 0)
-        };
+        var locationSection = CreateSettingsSection(
+            "Location",
+            CreateSectionStack(
+                CreateField("Country", _countryComboBox),
+                CreateField("City", _cityComboBox)));
 
-        var locationSection = CreateGroupSection("Location");
-        locationSection.Controls.Add(CreateField("City", _cityComboBox));
-        locationSection.Controls.Add(CreateField("Country", _countryComboBox));
+        var reminderSection = CreateSettingsSection(
+            "Reminder",
+            CreateSectionStack(CreateField("Lead Minutes", _leadMinutesNumeric)));
 
-        var reminderSection = CreateGroupSection("Reminder");
-        reminderSection.Controls.Add(CreateField("Lead Minutes", _leadMinutesNumeric));
+        var prayerSection = CreateSettingsSection("Prayers", prayerPanel);
 
-        var prayerSection = CreateGroupSection("Prayers");
-        prayerSection.Controls.Add(prayerPanel);
-
-        var runtimeSection = CreateGroupSection("Runtime");
         var actionRow = new FlowLayoutPanel
         {
             Dock = DockStyle.Top,
             AutoSize = true,
-            FlowDirection = FlowDirection.TopDown,
+            FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
             BackColor = Color.Transparent,
-            Margin = new Padding(0, 4, 0, 0)
+            Margin = new Padding(0)
         };
         actionRow.Controls.Add(_refreshButton);
-        actionRow.Controls.Add(metaLabel);
-        runtimeSection.Controls.Add(actionRow);
+
+        var runtimeSection = CreateSettingsSection("Schedule", actionRow);
 
         panel.Controls.Add(locationSection);
         panel.Controls.Add(reminderSection);
         panel.Controls.Add(prayerSection);
         panel.Controls.Add(runtimeSection);
+
+        void ResizeSections()
+        {
+            var width = Math.Max(260, panel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 6);
+            foreach (Control control in panel.Controls)
+            {
+                control.Width = width;
+            }
+        }
+
+        panel.SizeChanged += (_, _) => ResizeSections();
+        panel.ControlAdded += (_, _) => ResizeSections();
+        ResizeSections();
         panel.ResumeLayout(performLayout: true);
         return panel;
     }
@@ -507,43 +518,100 @@ internal sealed class SettingsForm : Form
 
     private static Panel CreateField(string labelText, Control input)
     {
-        var panel = new Panel
+        var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Top,
-            Height = input is NumericUpDown ? 74 : 78,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0, 0, 0, 12),
             BackColor = Color.Transparent
         };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
 
         var label = new Label
         {
             Text = labelText,
-            Dock = DockStyle.Top,
-            Height = 24,
+            Dock = DockStyle.Fill,
             ForeColor = IslamicTheme.Emerald900,
-            Font = IslamicTheme.BodyFont(9.5f, FontStyle.Bold)
+            Font = IslamicTheme.BodyFont(9.5f, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0, 0, 0, 4)
         };
 
-        input.Dock = DockStyle.Bottom;
-        panel.Controls.Add(input);
-        panel.Controls.Add(label);
+        input.Dock = DockStyle.Fill;
+        input.Margin = new Padding(0);
+        input.Height = 38;
+
+        panel.Controls.Add(label, 0, 0);
+        panel.Controls.Add(input, 0, 1);
         return panel;
     }
 
-    private static GroupBox CreateGroupSection(string text)
+    private static TableLayoutPanel CreateSectionStack(params Control[] controls)
     {
-        var group = new GroupBox
+        var panel = new TableLayoutPanel
         {
-            Text = text,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Width = 270,
-            Padding = new Padding(14, 16, 14, 12),
-            Margin = new Padding(0, 0, 0, 12),
-            ForeColor = IslamicTheme.Rosewood,
-            Font = IslamicTheme.BodyFont(10f, FontStyle.Bold),
+            Dock = DockStyle.Top,
+            ColumnCount = 1,
+            RowCount = controls.Length,
+            Margin = new Padding(0),
             BackColor = Color.Transparent
         };
-        return group;
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+        for (var i = 0; i < controls.Length; i++)
+        {
+            panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            panel.Controls.Add(controls[i], 0, i);
+        }
+
+        return panel;
+    }
+
+    private static CardPanel CreateSettingsSection(string title, Control content)
+    {
+        var card = CreateCard();
+        card.AutoSize = true;
+        card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        card.Padding = new Padding(14, 14, 14, 12);
+        card.Margin = new Padding(0, 0, 0, 12);
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var titleLabel = new Label
+        {
+            Text = title,
+            Dock = DockStyle.Fill,
+            ForeColor = IslamicTheme.Rosewood,
+            Font = IslamicTheme.BodyFont(10f, FontStyle.Bold),
+            Margin = new Padding(0, 0, 0, 10),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+
+        content.Dock = DockStyle.Top;
+        content.Margin = new Padding(0);
+
+        layout.Controls.Add(titleLabel, 0, 0);
+        layout.Controls.Add(content, 0, 1);
+        card.Controls.Add(layout);
+        return card;
     }
 
     private static CheckBox CreatePrayerToggle(string text, bool isChecked)
