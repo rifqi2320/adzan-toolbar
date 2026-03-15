@@ -36,15 +36,16 @@ internal sealed class SettingsForm : Form
         _scheduleRepository = scheduleRepository;
 
         Text = "Adzan Toolbar Settings";
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        MaximizeBox = false;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(980, 710);
+        MinimumSize = new Size(960, 720);
         BackColor = IslamicTheme.Parchment;
         Font = IslamicTheme.BodyFont(10f);
         Padding = new Padding(1);
-        SizeGripStyle = SizeGripStyle.Hide;
+        SizeGripStyle = SizeGripStyle.Auto;
 
         _windowIcon = TrayIconFactory.Create();
         Icon = _windowIcon;
@@ -76,15 +77,17 @@ internal sealed class SettingsForm : Form
             Padding = new Padding(18, 16, 18, 12),
             BackColor = IslamicTheme.Parchment
         };
-        content.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 332));
-        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34f));
+        content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66f));
 
         var settingsCard = CreateCard();
+        settingsCard.MinimumSize = new Size(320, 0);
         settingsCard.Padding = new Padding(16, 14, 16, 14);
         settingsCard.Margin = new Padding(0, 0, 14, 0);
         settingsCard.Controls.Add(BuildSettingsPane());
 
         var scheduleCard = CreateCard();
+        scheduleCard.MinimumSize = new Size(500, 0);
         scheduleCard.Padding = new Padding(16, 14, 16, 14);
         scheduleCard.Margin = new Padding(0);
         scheduleCard.Controls.Add(BuildSchedulePane());
@@ -205,7 +208,7 @@ internal sealed class SettingsForm : Form
         prayerPanel.Controls.Add(_maghribCheckBox, 0, 3);
         prayerPanel.Controls.Add(_ishaCheckBox, 0, 4);
 
-        _refreshButton = new Button
+        _refreshButton = new ThemedButton
         {
             Text = "Refresh Week",
             Anchor = AnchorStyles.Left
@@ -315,11 +318,11 @@ internal sealed class SettingsForm : Form
             BackColor = Color.Transparent
         };
 
-        var saveButton = new Button { Text = "Save" };
+        var saveButton = new ThemedButton { Text = "Save" };
         IslamicTheme.StyleButton(saveButton, primary: true);
         saveButton.Click += (_, _) => SaveAndClose();
 
-        var cancelButton = new Button { Text = "Cancel" };
+        var cancelButton = new ThemedButton { Text = "Cancel" };
         IslamicTheme.StyleButton(cancelButton, primary: false);
         cancelButton.Click += (_, _) => Close();
 

@@ -153,7 +153,7 @@ internal sealed class AdhanPopupForm : Form
         timeStack.Controls.Add(timeLabel, 0, 1);
         timeCard.Controls.Add(timeStack);
 
-        var dismissButton = new Button
+        var dismissButton = new ThemedButton
         {
             Text = "Dismiss",
             Anchor = AnchorStyles.Right,
