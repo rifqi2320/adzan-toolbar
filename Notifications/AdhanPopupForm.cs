@@ -23,7 +23,7 @@ internal sealed class AdhanPopupForm : Form
         StartPosition = FormStartPosition.Manual;
         TopMost = true;
         BackColor = IslamicTheme.Emerald900;
-        Size = new Size(472, 256);
+        Size = new Size(488, 248);
         Padding = new Padding(0);
         DoubleBuffered = true;
         Opacity = 0;
@@ -31,7 +31,7 @@ internal sealed class AdhanPopupForm : Form
         var card = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(24, 22, 24, 20),
+            Padding = new Padding(24, 20, 24, 20),
             BackColor = Color.Transparent
         };
 
@@ -43,7 +43,7 @@ internal sealed class AdhanPopupForm : Form
             BackColor = Color.Transparent
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 12));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -82,7 +82,7 @@ internal sealed class AdhanPopupForm : Form
         {
             Dock = DockStyle.Fill,
             Text = prayerName,
-            Font = IslamicTheme.HeaderFont(30f),
+            Font = IslamicTheme.HeaderFont(28f),
             ForeColor = IslamicTheme.Parchment,
             AutoEllipsis = true,
             TextAlign = ContentAlignment.MiddleLeft
@@ -126,9 +126,9 @@ internal sealed class AdhanPopupForm : Form
         var timeCard = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 96,
-            Margin = new Padding(14, 6, 0, 0),
-            Padding = new Padding(14, 12, 14, 12),
+            Height = 108,
+            Margin = new Padding(10, 8, 0, 0),
+            Padding = new Padding(16, 14, 16, 12),
             BackColor = Color.FromArgb(236, 228, 207)
         };
 
@@ -167,7 +167,8 @@ internal sealed class AdhanPopupForm : Form
         {
             Text = "Dismiss",
             Dock = DockStyle.Fill,
-            Height = 38
+            Height = 40,
+            Margin = new Padding(10, 10, 0, 0)
         };
         IslamicTheme.StyleFlatActionButton(dismissButton);
         dismissButton.Click += (_, _) => BeginFadeOut();
@@ -179,7 +180,7 @@ internal sealed class AdhanPopupForm : Form
             RowCount = 2,
             Margin = new Padding(0)
         };
-        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 106));
+        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
         rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
         rightStack.Controls.Add(timeCard, 0, 0);
         rightStack.Controls.Add(dismissButton, 0, 1);
@@ -192,8 +193,8 @@ internal sealed class AdhanPopupForm : Form
             BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
-        bodyLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
-        bodyLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
+        bodyLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 64));
+        bodyLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 36));
         bodyLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         bodyLayout.Controls.Add(leftStack, 0, 0);
         bodyLayout.Controls.Add(rightStack, 1, 0);

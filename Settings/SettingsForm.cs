@@ -132,8 +132,8 @@ internal sealed class SettingsForm : Form
         _countryComboBox = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            AutoCompleteMode = AutoCompleteMode.SuggestAppend,
-            AutoCompleteSource = AutoCompleteSource.ListItems,
+            AutoCompleteMode = AutoCompleteMode.None,
+            AutoCompleteSource = AutoCompleteSource.None,
             IntegralHeight = false,
             MaxDropDownItems = 14
         };
