@@ -73,8 +73,30 @@ jobs:
             -arch x64 `
             -d PublishDir="$pwd\artifacts\framework-dependent" `
             -d ProductVersion="$normalizedVersion" `
-            -o artifacts\release\AdzanToolbar-win-x64-installer.msi `
+            -o artifacts\release\AdzanToolbar-win-x64-package.msi `
             Installer\Product.wxs
+
+      - name: Download Windows Desktop Runtime installer
+        run: |
+          New-Item -ItemType Directory -Path artifacts/prereqs -Force | Out-Null
+          Invoke-WebRequest `
+            -Uri "https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe" `
+            -OutFile "artifacts/prereqs/windowsdesktop-runtime-win-x64.exe"
+
+      - name: Build bootstrapper installer
+        env:
+          PRODUCT_VERSION: ${{ inputs.version }}
+        run: |
+          $normalizedVersion = $env:PRODUCT_VERSION.TrimStart('v')
+          wix build `
+            -arch x64 `
+            -ext WixToolset.Bal.wixext `
+            -ext WixToolset.Util.wixext `
+            -d ProductVersion="$normalizedVersion" `
+            -d MsiPath="$pwd\artifacts\release\AdzanToolbar-win-x64-package.msi" `
+            -d RuntimeInstaller="$pwd\artifacts\prereqs\windowsdesktop-runtime-win-x64.exe" `
+            -o artifacts\release\AdzanToolbar-win-x64-installer.exe `
+            Installer\Bundle.wxs
 
       - name: Prepare release assets
         run: |
@@ -82,14 +104,14 @@ jobs:
 
       - name: Validate release asset sizes
         run: |
-          $msiSize = (Get-Item artifacts/release/AdzanToolbar-win-x64-installer.msi).Length
+          $installerSize = (Get-Item artifacts/release/AdzanToolbar-win-x64-installer.exe).Length
           $standaloneSize = (Get-Item artifacts/release/AdzanToolbar-win-x64-standalone.exe).Length
 
-          Write-Host "MSI size: $msiSize bytes"
+          Write-Host "Installer size: $installerSize bytes"
           Write-Host "Standalone exe size: $standaloneSize bytes"
 
-          if ($msiSize -lt 50000 -or $msiSize -gt 10000000) {
-            Write-Host "MSI package size is outside the expected range."
+          if ($installerSize -lt 10000000 -or $installerSize -gt 250000000) {
+            Write-Host "Installer package size is outside the expected range."
             exit 1
           }
 
@@ -103,7 +125,7 @@ jobs:
         with:
           name: adzan-toolbar-${{ inputs.version }}
           path: |
-            artifacts/release/AdzanToolbar-win-x64-installer.msi
+            artifacts/release/AdzanToolbar-win-x64-installer.exe
             artifacts/release/AdzanToolbar-win-x64-standalone.exe
 
       - name: Prepare release notes
@@ -120,7 +142,7 @@ jobs:
           Release $env:VERSION
 
           Assets:
-          - AdzanToolbar-win-x64-installer.msi: Windows installer, requires .NET 8 Windows Desktop Runtime
+          - AdzanToolbar-win-x64-installer.exe: bundled installer that can install the .NET 8 Windows Desktop Runtime
           - AdzanToolbar-win-x64-standalone.exe: larger single-file build with runtime included
           "@ | Set-Content -Path RELEASE_NOTES.md
 
@@ -131,7 +153,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           gh release create "$env:VERSION" `
-            artifacts/release/AdzanToolbar-win-x64-installer.msi `
+            artifacts/release/AdzanToolbar-win-x64-installer.exe `
             artifacts/release/AdzanToolbar-win-x64-standalone.exe `
             --repo "$env:REPOSITORY" `
             --target "$env:GITHUB_SHA" `

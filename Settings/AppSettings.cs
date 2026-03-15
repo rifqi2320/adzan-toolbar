@@ -8,7 +8,7 @@ internal sealed class AppSettings
 
     public int ReminderLeadMinutes { get; set; } = 0;
 
-    public bool StartOnLogin { get; set; }
+    public bool StartOnLogin { get; set; } = true;
 
     public PrayerPreferences Prayers { get; set; } = new();
 
