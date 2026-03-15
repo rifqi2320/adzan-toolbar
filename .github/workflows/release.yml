@@ -34,9 +34,9 @@ jobs:
           VERSION: ${{ inputs.version }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          $PSNativeCommandUseErrorActionPreference = $false
-          gh release view "$env:VERSION" --repo "$env:REPOSITORY" *> $null
-          if ($LASTEXITCODE -eq 0) {
+          $existingRelease = gh release list --repo "$env:REPOSITORY" --limit 100 --json tagName | ConvertFrom-Json |
+            Where-Object { $_.tagName -eq $env:VERSION }
+          if ($existingRelease) {
             Write-Host "Release $env:VERSION already exists."
             exit 1
           }
