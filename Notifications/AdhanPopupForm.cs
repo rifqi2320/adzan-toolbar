@@ -135,9 +135,10 @@ internal sealed class AdhanPopupForm : Form
         {
             Dock = DockStyle.Fill,
             Text = prayerTime,
-            Font = IslamicTheme.HeaderFont(22f),
+            Font = IslamicTheme.HeaderFont(18f),
             ForeColor = IslamicTheme.Emerald900,
-            TextAlign = ContentAlignment.MiddleCenter
+            TextAlign = ContentAlignment.MiddleCenter,
+            AutoEllipsis = true
         };
         var timeStack = new TableLayoutPanel
         {

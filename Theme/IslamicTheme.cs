@@ -42,6 +42,7 @@ internal static class IslamicTheme
         button.FlatAppearance.BorderSize = 0;
         button.Cursor = Cursors.Hand;
         button.Font = BodyFont(10.5f, FontStyle.Bold);
+        button.TextAlign = ContentAlignment.MiddleCenter;
 
         if (primary)
         {
@@ -67,27 +68,20 @@ internal static class IslamicTheme
         button.ForeColor = Emerald900;
         button.Cursor = Cursors.Hand;
         button.Font = BodyFont(10f, FontStyle.Bold);
+        button.TextAlign = ContentAlignment.MiddleCenter;
     }
 
     public static void StylePrayerToggle(CheckBox checkBox)
     {
-        checkBox.Appearance = Appearance.Button;
-        checkBox.AutoSize = false;
-        checkBox.TextAlign = ContentAlignment.MiddleCenter;
-        checkBox.Size = new Size(96, 38);
-        checkBox.FlatStyle = FlatStyle.Flat;
-        checkBox.FlatAppearance.BorderSize = 1;
-        checkBox.FlatAppearance.BorderColor = Gold500;
-        checkBox.Font = BodyFont(10f, FontStyle.Bold);
+        checkBox.Appearance = Appearance.Normal;
+        checkBox.AutoSize = true;
+        checkBox.UseVisualStyleBackColor = false;
+        checkBox.BackColor = Color.Transparent;
+        checkBox.ForeColor = Ink;
+        checkBox.Font = BodyFont(10f);
+        checkBox.TextAlign = ContentAlignment.MiddleLeft;
+        checkBox.Padding = new Padding(2, 0, 0, 0);
+        checkBox.Margin = new Padding(0, 0, 0, 8);
         checkBox.Cursor = Cursors.Hand;
-
-        void RefreshState()
-        {
-            checkBox.BackColor = checkBox.Checked ? Emerald700 : Color.White;
-            checkBox.ForeColor = checkBox.Checked ? Parchment : Emerald900;
-        }
-
-        checkBox.CheckedChanged += (_, _) => RefreshState();
-        RefreshState();
     }
 }

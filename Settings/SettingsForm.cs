@@ -183,17 +183,27 @@ internal sealed class SettingsForm : Form
         _maghribCheckBox = CreatePrayerToggle("Maghrib", _settings.Prayers.Maghrib);
         _ishaCheckBox = CreatePrayerToggle("Isha", _settings.Prayers.Isha);
 
-        var prayerPanel = new FlowLayoutPanel
+        var prayerPanel = new TableLayoutPanel
         {
             Dock = DockStyle.Top,
             AutoSize = true,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            RowCount = 5,
             Margin = new Padding(0),
             BackColor = Color.Transparent
         };
-        prayerPanel.Controls.AddRange(
-            [_fajrCheckBox, _dhuhrCheckBox, _asrCheckBox, _maghribCheckBox, _ishaCheckBox]);
+        prayerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        prayerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        prayerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        prayerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        prayerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        prayerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        prayerPanel.Controls.Add(_fajrCheckBox, 0, 0);
+        prayerPanel.Controls.Add(_dhuhrCheckBox, 0, 1);
+        prayerPanel.Controls.Add(_asrCheckBox, 0, 2);
+        prayerPanel.Controls.Add(_maghribCheckBox, 0, 3);
+        prayerPanel.Controls.Add(_ishaCheckBox, 0, 4);
 
         _refreshButton = new Button
         {
@@ -485,6 +495,7 @@ internal sealed class SettingsForm : Form
                 Padding = new Padding(6, 0, 6, 0)
             }
         };
+        grid.SelectionChanged += (_, _) => grid.ClearSelection();
 
         grid.Columns.Add(CreateColumn("Date", "Date", 148));
         grid.Columns.Add(CreateColumn("Fajr", "Fajr"));
@@ -505,11 +516,24 @@ internal sealed class SettingsForm : Form
                 return;
             }
 
-            var bounds = new Rectangle(
-                grid.RowHeadersWidth,
-                e.RowBounds.Top,
-                grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) - 1,
-                e.RowBounds.Height - 1);
+            var visibleColumns = grid.Columns
+                .Cast<DataGridViewColumn>()
+                .Where(column => column.Visible)
+                .OrderBy(column => column.DisplayIndex)
+                .ToArray();
+
+            if (visibleColumns.Length == 0)
+            {
+                return;
+            }
+
+            var lastCellBounds = grid.GetCellDisplayRectangle(visibleColumns[^1].Index, e.RowIndex, cutOverflow: true);
+            var rowBounds = grid.GetRowDisplayRectangle(e.RowIndex, cutOverflow: true);
+            var bounds = Rectangle.FromLTRB(
+                rowBounds.Left,
+                rowBounds.Top,
+                lastCellBounds.Right - 1,
+                rowBounds.Bottom - 1);
 
             using var pen = new Pen(IslamicTheme.TodayHighlight, 2f);
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -589,43 +613,25 @@ internal sealed class SettingsForm : Form
         return panel;
     }
 
-    private static CardPanel CreateSettingsSection(string title, Control content)
+    private static GroupBox CreateSettingsSection(string title, Control content)
     {
-        var card = CreateCard();
-        card.Dock = DockStyle.Top;
-        card.Padding = new Padding(14, 14, 14, 12);
-        card.Margin = new Padding(0, 0, 0, 12);
-
-        var layout = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            ColumnCount = 1,
-            RowCount = 2,
-            BackColor = Color.Transparent
-        };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-
-        var titleLabel = new Label
+        var section = new GroupBox
         {
             Text = title,
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = new Padding(0, 0, 0, 12),
+            Padding = new Padding(12, 16, 12, 10),
             ForeColor = IslamicTheme.Rosewood,
             Font = IslamicTheme.BodyFont(10f, FontStyle.Bold),
-            Margin = new Padding(0, 0, 0, 10),
-            TextAlign = ContentAlignment.MiddleLeft
+            BackColor = Color.Transparent
         };
 
         content.Dock = DockStyle.Top;
         content.Margin = new Padding(0);
-
-        layout.Controls.Add(titleLabel, 0, 0);
-        layout.Controls.Add(content, 0, 1);
-        card.Controls.Add(layout);
-        return card;
+        section.Controls.Add(content);
+        return section;
     }
 
     private static CheckBox CreatePrayerToggle(string text, bool isChecked)
