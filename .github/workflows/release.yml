@@ -43,23 +43,56 @@ jobs:
         run: dotnet restore
 
       - name: Publish framework-dependent build
-        run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true -o artifacts/framework-dependent
+        run: |
+          rm -rf artifacts/framework-dependent
+          dotnet clean -c Release -r win-x64
+          dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=false /p:DebugType=None /p:DebugSymbols=false -o artifacts/framework-dependent
 
       - name: Publish self-contained build
-        run: dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true -o artifacts/self-contained
+        run: |
+          rm -rf artifacts/self-contained
+          dotnet clean -c Release -r win-x64
+          dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false -o artifacts/self-contained
 
       - name: Prepare release assets
         run: |
-          cp artifacts/framework-dependent/AdzanToolbar.exe artifacts/framework-dependent/AdzanToolbar-win-x64-framework-dependent.exe
-          cp artifacts/self-contained/AdzanToolbar.exe artifacts/self-contained/AdzanToolbar-win-x64-self-contained.exe
+          rm -rf artifacts/release
+          mkdir -p artifacts/release
+          (
+            cd artifacts/framework-dependent
+            zip -9 ../release/AdzanToolbar-win-x64-framework-dependent.zip \
+              AdzanToolbar.exe \
+              AdzanToolbar.dll \
+              AdzanToolbar.deps.json \
+              AdzanToolbar.runtimeconfig.json
+          )
+          cp artifacts/self-contained/AdzanToolbar.exe artifacts/release/AdzanToolbar-win-x64-self-contained.exe
+
+      - name: Validate release asset sizes
+        run: |
+          framework_zip_size=$(stat -c%s artifacts/release/AdzanToolbar-win-x64-framework-dependent.zip)
+          self_contained_size=$(stat -c%s artifacts/release/AdzanToolbar-win-x64-self-contained.exe)
+
+          echo "Framework-dependent zip size: $framework_zip_size bytes"
+          echo "Self-contained exe size: $self_contained_size bytes"
+
+          if [ "$framework_zip_size" -gt 5000000 ]; then
+            echo "Framework-dependent package is unexpectedly large."
+            exit 1
+          fi
+
+          if [ "$self_contained_size" -lt 40000000 ] || [ "$self_contained_size" -gt 120000000 ]; then
+            echo "Self-contained package size is outside the expected range."
+            exit 1
+          fi
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: adzan-toolbar-${{ inputs.version }}
           path: |
-            artifacts/framework-dependent/AdzanToolbar-win-x64-framework-dependent.exe
-            artifacts/self-contained/AdzanToolbar-win-x64-self-contained.exe
+            artifacts/release/AdzanToolbar-win-x64-framework-dependent.zip
+            artifacts/release/AdzanToolbar-win-x64-self-contained.exe
 
       - name: Prepare release notes
         env:
@@ -75,7 +108,7 @@ jobs:
           Release $VERSION
 
           Assets:
-          - AdzanToolbar-win-x64-framework-dependent.exe: small single-file build, requires .NET 8 Windows Desktop Runtime
+          - AdzanToolbar-win-x64-framework-dependent.zip: small build, requires .NET 8 Windows Desktop Runtime
           - AdzanToolbar-win-x64-self-contained.exe: larger single-file build with runtime included
           EOF
 
@@ -86,8 +119,8 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           gh release create "$VERSION" \
-            artifacts/framework-dependent/AdzanToolbar-win-x64-framework-dependent.exe \
-            artifacts/self-contained/AdzanToolbar-win-x64-self-contained.exe \
+            artifacts/release/AdzanToolbar-win-x64-framework-dependent.zip \
+            artifacts/release/AdzanToolbar-win-x64-self-contained.exe \
             --repo "$REPOSITORY" \
             --target "${GITHUB_SHA}" \
             --title "$VERSION" \
