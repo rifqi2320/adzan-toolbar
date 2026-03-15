@@ -48,7 +48,7 @@ jobs:
         run: |
           dotnet clean -c Release -r win-x64
           dotnet tool install --global wix --version 5.0.2
-          wix extension add --global WixToolset.Bal.wixext/5.0.2
+          wix extension add --global WixToolset.BootstrapperApplications.wixext/5.0.2
           wix extension add --global WixToolset.Util.wixext/5.0.2
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
@@ -92,7 +92,7 @@ jobs:
           $normalizedVersion = $env:PRODUCT_VERSION.TrimStart('v')
           wix build `
             -arch x64 `
-            -ext WixToolset.Bal.wixext `
+            -ext WixToolset.BootstrapperApplications.wixext `
             -ext WixToolset.Util.wixext `
             -d ProductVersion="$normalizedVersion" `
             -d MsiPath="$pwd\artifacts\release\AdzanToolbar-win-x64-package.msi" `
