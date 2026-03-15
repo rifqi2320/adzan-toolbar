@@ -48,8 +48,8 @@ jobs:
         run: |
           dotnet clean -c Release -r win-x64
           dotnet tool install --global wix --version 5.0.2
-          wix extension add WixToolset.Bal.wixext/5.0.2
-          wix extension add WixToolset.Util.wixext/5.0.2
+          wix extension add --global WixToolset.Bal.wixext/5.0.2
+          wix extension add --global WixToolset.Util.wixext/5.0.2
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Publish framework-dependent build
