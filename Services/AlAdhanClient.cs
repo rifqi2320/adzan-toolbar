@@ -9,7 +9,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using AdzanToolbar.Models;
-using AdzanToolbar.Settings;
 
 namespace AdzanToolbar.Services;
 
@@ -28,59 +27,77 @@ internal sealed class AlAdhanClient : IDisposable
         _httpClient.BaseAddress = new Uri("https://api.aladhan.com/");
     }
 
-    public async Task<PrayerSchedule> GetPrayerScheduleAsync(AppSettings settings, DateTimeOffset now, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<PrayerDaySchedule>> GetPrayerDaysAsync(
+        string city,
+        string country,
+        DateOnly startDate,
+        int dayCount,
+        CancellationToken cancellationToken)
+    {
+        var endDate = startDate.AddDays(dayCount - 1);
+        var months = new HashSet<(int Year, int Month)>();
+        for (var date = startDate; date <= endDate; date = date.AddDays(1))
+        {
+            months.Add((date.Year, date.Month));
+        }
+
+        var allDays = new List<PrayerDaySchedule>();
+        foreach (var (year, month) in months.OrderBy(entry => entry.Year).ThenBy(entry => entry.Month))
+        {
+            var monthDays = await GetMonthAsync(city, country, month, year, cancellationToken).ConfigureAwait(false);
+            allDays.AddRange(monthDays);
+        }
+
+        return allDays
+            .Where(day => day.Date >= startDate && day.Date <= endDate)
+            .OrderBy(day => day.Date)
+            .ToArray();
+    }
+
+    private async Task<IReadOnlyList<PrayerDaySchedule>> GetMonthAsync(
+        string city,
+        string country,
+        int month,
+        int year,
+        CancellationToken cancellationToken)
     {
         var requestPath =
-            $"v1/timingsByCity?city={Uri.EscapeDataString(settings.City)}" +
-            $"&country={Uri.EscapeDataString(settings.Country)}" +
-            $"&method={settings.CalculationMethod}";
+            $"v1/calendarByCity?city={Uri.EscapeDataString(city)}" +
+            $"&country={Uri.EscapeDataString(country)}" +
+            $"&method={PrayerApiDefaults.CalculationMethod}" +
+            $"&month={month}&year={year}";
 
         using var response = await _httpClient.GetAsync(requestPath, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        var payload = await JsonSerializer.DeserializeAsync<AlAdhanResponse>(
+        var payload = await JsonSerializer.DeserializeAsync<CalendarResponse>(
                 stream,
                 SerializerOptions,
                 cancellationToken)
             .ConfigureAwait(false);
 
-        if (payload?.Data?.Timings is null || payload.Data.Date?.Gregorian?.Date is null)
+        if (payload?.Data is null)
         {
             throw new InvalidOperationException("Prayer timings were missing from the API response.");
         }
 
-        var scheduleDate = DateOnly.ParseExact(
-            payload.Data.Date.Gregorian.Date,
-            "dd-MM-yyyy",
-            CultureInfo.InvariantCulture);
-
-        var timeZone = TryResolveTimeZone(payload.Data.Meta?.Timezone);
-        var prayers = new List<PrayerTime>();
-        foreach (var entry in payload.Data.Timings.ToPrayerMap())
-        {
-            if (!settings.Prayers.IsEnabled(entry.Key))
+        return payload.Data
+            .Where(day => day.Date?.Gregorian?.Date is not null && day.Timings is not null)
+            .Select(day => new PrayerDaySchedule
             {
-                continue;
-            }
-
-            var adhanTime = ParsePrayerTime(scheduleDate, entry.Value, timeZone, now.Offset);
-            prayers.Add(new PrayerTime
-            {
-                Name = entry.Key,
-                AdhanAt = adhanTime,
-                TriggerAt = adhanTime.AddMinutes(-settings.ReminderLeadMinutes)
-            });
-        }
-
-        return new PrayerSchedule
-        {
-            Date = scheduleDate,
-            Prayers = prayers.OrderBy(prayer => prayer.TriggerAt).ToArray()
-        };
+                Date = DateOnly.ParseExact(day.Date!.Gregorian!.Date!, "dd-MM-yyyy", CultureInfo.InvariantCulture),
+                TimeZoneId = day.Meta?.Timezone ?? string.Empty,
+                Fajr = NormalizeTime(day.Timings!.Fajr),
+                Dhuhr = NormalizeTime(day.Timings.Dhuhr),
+                Asr = NormalizeTime(day.Timings.Asr),
+                Maghrib = NormalizeTime(day.Timings.Maghrib),
+                Isha = NormalizeTime(day.Timings.Isha)
+            })
+            .ToArray();
     }
 
-    private static DateTimeOffset ParsePrayerTime(DateOnly date, string rawTime, TimeZoneInfo? timeZone, TimeSpan localOffset)
+    private static string NormalizeTime(string rawTime)
     {
         var match = TimeRegex.Match(rawTime);
         if (!match.Success)
@@ -88,38 +105,7 @@ internal sealed class AlAdhanClient : IDisposable
             throw new FormatException($"Could not parse prayer time '{rawTime}'.");
         }
 
-        var time = TimeOnly.FromDateTime(
-            DateTime.ParseExact(
-                match.Value,
-                ["H:mm", "HH:mm"],
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.None));
-        var localDateTime = date.ToDateTime(time, DateTimeKind.Unspecified);
-
-        if (timeZone is null)
-        {
-            return new DateTimeOffset(localDateTime, localOffset);
-        }
-
-        var prayerOffset = timeZone.GetUtcOffset(localDateTime);
-        return new DateTimeOffset(localDateTime, prayerOffset).ToLocalTime();
-    }
-
-    private static TimeZoneInfo? TryResolveTimeZone(string? timeZoneId)
-    {
-        if (string.IsNullOrWhiteSpace(timeZoneId))
-        {
-            return null;
-        }
-
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-        catch
-        {
-            return null;
-        }
+        return match.Value;
     }
 
     public void Dispose()
@@ -127,9 +113,9 @@ internal sealed class AlAdhanClient : IDisposable
         _httpClient.Dispose();
     }
 
-    private sealed class AlAdhanResponse
+    private sealed class CalendarResponse
     {
-        public AlAdhanData? Data { get; set; }
+        public List<AlAdhanData>? Data { get; set; }
     }
 
     private sealed class AlAdhanData

@@ -12,8 +12,8 @@ namespace AdzanToolbar.Scheduling;
 
 internal sealed class AdhanScheduler : IDisposable
 {
-    private readonly AlAdhanClient _adhanClient;
-    private readonly TrayNotifier _notifier;
+    private readonly PrayerScheduleRepository _scheduleRepository;
+    private readonly PopupNotifier _notifier;
     private readonly HashSet<string> _triggeredKeys = new(StringComparer.OrdinalIgnoreCase);
 
     private CancellationTokenSource? _cts;
@@ -21,9 +21,9 @@ internal sealed class AdhanScheduler : IDisposable
     private PrayerSchedule? _currentSchedule;
     private DateTimeOffset _lastRefreshAt;
 
-    public AdhanScheduler(AlAdhanClient adhanClient, TrayNotifier notifier)
+    public AdhanScheduler(PrayerScheduleRepository scheduleRepository, PopupNotifier notifier)
     {
-        _adhanClient = adhanClient;
+        _scheduleRepository = scheduleRepository;
         _notifier = notifier;
     }
 
@@ -90,7 +90,7 @@ internal sealed class AdhanScheduler : IDisposable
 
     private async Task RunAsync(AppSettings settings, CancellationToken cancellationToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(settings.PollingIntervalSeconds));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(PrayerApiDefaults.PollingIntervalSeconds));
         while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
         {
             try
@@ -130,7 +130,7 @@ internal sealed class AdhanScheduler : IDisposable
                 continue;
             }
 
-            _notifier.ShowPrayerReminder(prayer.Name, settings.City, settings.Country);
+            _notifier.ShowPrayerReminder(prayer.Name, prayer.DisplayTime, settings.City, settings.Country);
             _triggeredKeys.Add(key);
         }
 
@@ -149,8 +149,9 @@ internal sealed class AdhanScheduler : IDisposable
     private async Task RefreshScheduleAsync(AppSettings settings, CancellationToken cancellationToken)
     {
         var previousDate = _currentSchedule?.Date;
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var now = DateTimeOffset.Now;
-        _currentSchedule = await _adhanClient.GetPrayerScheduleAsync(settings, now, cancellationToken).ConfigureAwait(false);
+        _currentSchedule = await _scheduleRepository.GetPrayerScheduleAsync(settings, today, cancellationToken).ConfigureAwait(false);
         _lastRefreshAt = now;
 
         if (previousDate != _currentSchedule.Date)

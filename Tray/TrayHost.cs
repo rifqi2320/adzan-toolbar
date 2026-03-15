@@ -25,7 +25,7 @@ internal sealed class TrayHost : IDisposable
         var openSettingsItem = new ToolStripMenuItem("Open Settings");
         openSettingsItem.Click += (_, _) => OpenSettingsRequested?.Invoke(this, EventArgs.Empty);
 
-        var testNotificationItem = new ToolStripMenuItem("Trigger Test Notification");
+        var testNotificationItem = new ToolStripMenuItem("Show Test Popup");
         testNotificationItem.Click += (_, _) => TestNotificationRequested?.Invoke(this, EventArgs.Empty);
 
         var restartItem = new ToolStripMenuItem("Restart Scheduler");

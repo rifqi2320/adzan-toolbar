@@ -14,8 +14,10 @@ internal sealed class AdzanApplicationContext : ApplicationContext
 {
     private readonly JsonSettingsStore _settingsStore;
     private readonly TrayHost _trayHost;
-    private readonly TrayNotifier _notifier;
+    private readonly PopupNotifier _notifier;
     private readonly AlAdhanClient _adhanClient;
+    private readonly PrayerCacheStore _cacheStore;
+    private readonly PrayerScheduleRepository _scheduleRepository;
     private readonly AdhanScheduler _scheduler;
     private SettingsForm? _settingsForm;
     private bool _isExiting;
@@ -31,9 +33,11 @@ internal sealed class AdzanApplicationContext : ApplicationContext
         _trayHost.RestartSchedulerRequested += async (_, _) => await RestartSchedulerAsync();
         _trayHost.ExitRequested += async (_, _) => await ExitApplicationAsync();
 
-        _notifier = new TrayNotifier(_trayHost);
+        _notifier = new PopupNotifier();
         _adhanClient = new AlAdhanClient(new HttpClient());
-        _scheduler = new AdhanScheduler(_adhanClient, _notifier);
+        _cacheStore = new PrayerCacheStore();
+        _scheduleRepository = new PrayerScheduleRepository(_adhanClient, _cacheStore);
+        _scheduler = new AdhanScheduler(_scheduleRepository, _notifier);
         _scheduler.StatusChanged += (_, status) => _trayHost.SetStatus(status);
         _scheduler.ErrorOccurred += (_, message) => _trayHost.ShowError(message);
 
@@ -64,7 +68,7 @@ internal sealed class AdzanApplicationContext : ApplicationContext
         }
 
         var currentSettings = _settingsStore.Load();
-        _settingsForm = new SettingsForm(currentSettings);
+        _settingsForm = new SettingsForm(currentSettings, _scheduleRepository);
         _settingsForm.FormClosed += (_, _) => _settingsForm = null;
         _settingsForm.SettingsSaved += async (_, savedSettings) =>
         {
@@ -115,6 +119,7 @@ internal sealed class AdzanApplicationContext : ApplicationContext
         }
 
         _adhanClient.Dispose();
+        _notifier.Dispose();
         _trayHost.Dispose();
         ExitThread();
     }
@@ -126,6 +131,7 @@ internal sealed class AdzanApplicationContext : ApplicationContext
             _settingsForm?.Dispose();
             _scheduler.Dispose();
             _adhanClient.Dispose();
+            _notifier.Dispose();
             _trayHost.Dispose();
         }
 

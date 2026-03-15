@@ -53,10 +53,19 @@ internal sealed class JsonSettingsStore
     {
         settings.City = string.IsNullOrWhiteSpace(settings.City) ? "Jakarta" : settings.City.Trim();
         settings.Country = string.IsNullOrWhiteSpace(settings.Country) ? "Indonesia" : settings.Country.Trim();
-        settings.CalculationMethod = settings.CalculationMethod <= 0 ? 20 : settings.CalculationMethod;
         settings.ReminderLeadMinutes = Math.Max(0, settings.ReminderLeadMinutes);
-        settings.PollingIntervalSeconds = settings.PollingIntervalSeconds < 10 ? 30 : settings.PollingIntervalSeconds;
         settings.Prayers ??= new PrayerPreferences();
+        settings.RecentLocations ??= [];
+        settings.RecentLocations = settings.RecentLocations
+            .Where(location => !string.IsNullOrWhiteSpace(location.City) && !string.IsNullOrWhiteSpace(location.Country))
+            .Select(location => new SavedLocation
+            {
+                City = location.City.Trim(),
+                Country = location.Country.Trim()
+            })
+            .DistinctBy(location => $"{location.City}|{location.Country}")
+            .Take(20)
+            .ToList();
         return settings;
     }
 }

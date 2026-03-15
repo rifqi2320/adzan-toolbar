@@ -51,7 +51,10 @@ internal sealed class IslamicHeaderPanel : Panel
         using var subtitleFormat = new StringFormat { Alignment = StringAlignment.Near };
 
         g.DrawString(TitleText, IslamicTheme.HeaderFont(22f), titleBrush, titleBounds, titleFormat);
-        g.DrawString(SubtitleText, IslamicTheme.BodyFont(9.5f), subtitleBrush, subtitleBounds, subtitleFormat);
+        if (!string.IsNullOrWhiteSpace(SubtitleText))
+        {
+            g.DrawString(SubtitleText, IslamicTheme.BodyFont(9.5f), subtitleBrush, subtitleBounds, subtitleFormat);
+        }
     }
 
     private void DrawArch(Graphics g)

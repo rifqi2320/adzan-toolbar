@@ -6,6 +6,8 @@ internal sealed class PrayerTime
 {
     public required string Name { get; init; }
 
+    public required string DisplayTime { get; init; }
+
     public required DateTimeOffset AdhanAt { get; init; }
 
     public required DateTimeOffset TriggerAt { get; init; }
