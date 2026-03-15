@@ -23,7 +23,7 @@ internal sealed class AdhanPopupForm : Form
         StartPosition = FormStartPosition.Manual;
         TopMost = true;
         BackColor = IslamicTheme.Emerald900;
-        Size = new Size(488, 248);
+        Size = new Size(440, 232);
         Padding = new Padding(0);
         DoubleBuffered = true;
         Opacity = 0;
@@ -31,21 +31,23 @@ internal sealed class AdhanPopupForm : Form
         var card = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(24, 20, 24, 20),
+            Padding = new Padding(22, 20, 22, 18),
             BackColor = Color.Transparent
         };
 
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 3,
+            ColumnCount = 2,
+            RowCount = 4,
             BackColor = Color.Transparent
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 12));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 126));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 16));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
 
         var titleLabel = new Label
         {
@@ -82,7 +84,7 @@ internal sealed class AdhanPopupForm : Form
         {
             Dock = DockStyle.Fill,
             Text = prayerName,
-            Font = IslamicTheme.HeaderFont(28f),
+            Font = IslamicTheme.HeaderFont(26f),
             ForeColor = IslamicTheme.Parchment,
             AutoEllipsis = true,
             TextAlign = ContentAlignment.MiddleLeft
@@ -98,37 +100,24 @@ internal sealed class AdhanPopupForm : Form
             TextAlign = ContentAlignment.TopLeft
         };
 
-        var detailsLabel = new Label
-        {
-            Dock = DockStyle.Top,
-            Height = 22,
-            Text = "Prepare for the adhan and prayer.",
-            Font = IslamicTheme.BodyFont(9.5f),
-            ForeColor = Color.FromArgb(188, IslamicTheme.Parchment),
-            TextAlign = ContentAlignment.TopLeft
-        };
-
-        var leftStack = new TableLayoutPanel
+        var centerStack = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 3,
+            RowCount = 2,
             BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
-        leftStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        leftStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        leftStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-        leftStack.Controls.Add(prayerLabel, 0, 0);
-        leftStack.Controls.Add(messageLabel, 0, 1);
-        leftStack.Controls.Add(detailsLabel, 0, 2);
+        centerStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        centerStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        centerStack.Controls.Add(prayerLabel, 0, 0);
+        centerStack.Controls.Add(messageLabel, 0, 1);
 
         var timeCard = new Panel
         {
-            Dock = DockStyle.Top,
-            Height = 108,
-            Margin = new Padding(10, 8, 0, 0),
-            Padding = new Padding(16, 14, 16, 12),
+            Dock = DockStyle.Fill,
+            Margin = new Padding(12, 4, 0, 8),
+            Padding = new Padding(14, 12, 14, 12),
             BackColor = Color.FromArgb(236, 228, 207)
         };
 
@@ -166,38 +155,21 @@ internal sealed class AdhanPopupForm : Form
         var dismissButton = new Button
         {
             Text = "Dismiss",
-            Dock = DockStyle.Fill,
-            Height = 40,
-            Margin = new Padding(10, 10, 0, 0)
+            Anchor = AnchorStyles.Right,
+            Width = 108
         };
         IslamicTheme.StyleFlatActionButton(dismissButton);
         dismissButton.Click += (_, _) => BeginFadeOut();
 
-        var rightStack = new TableLayoutPanel
+        var footerPanel = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2,
-            Margin = new Padding(0)
-        };
-        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 118));
-        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
-        rightStack.Controls.Add(timeCard, 0, 0);
-        rightStack.Controls.Add(dismissButton, 0, 1);
-
-        var bodyLayout = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
             BackColor = Color.Transparent,
             Margin = new Padding(0)
         };
-        bodyLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 64));
-        bodyLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 36));
-        bodyLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        bodyLayout.Controls.Add(leftStack, 0, 0);
-        bodyLayout.Controls.Add(rightStack, 1, 0);
+        footerPanel.Controls.Add(dismissButton);
 
         var accentLine = new Panel
         {
@@ -208,8 +180,13 @@ internal sealed class AdhanPopupForm : Form
         };
 
         layout.Controls.Add(topStack, 0, 0);
+        layout.SetColumnSpan(topStack, 2);
         layout.Controls.Add(accentLine, 0, 1);
-        layout.Controls.Add(bodyLayout, 0, 2);
+        layout.SetColumnSpan(accentLine, 2);
+        layout.Controls.Add(centerStack, 0, 2);
+        layout.Controls.Add(timeCard, 1, 2);
+        layout.Controls.Add(footerPanel, 0, 3);
+        layout.SetColumnSpan(footerPanel, 2);
 
         card.Controls.Add(layout);
         Controls.Add(card);

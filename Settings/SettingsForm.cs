@@ -118,16 +118,26 @@ internal sealed class SettingsForm : Form
 
     private Control BuildSettingsPane()
     {
-        var panel = new FlowLayoutPanel
+        var panel = new Panel
         {
             Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false,
-            AutoScroll = true,
             BackColor = Color.Transparent,
-            Padding = new Padding(0, 0, 4, 0)
+            Padding = new Padding(0, 0, 4, 0),
+            AutoScroll = true
         };
         panel.SuspendLayout();
+
+        var stack = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            RowCount = 4,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+        stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
         _countryComboBox = new ComboBox
         {
@@ -218,22 +228,27 @@ internal sealed class SettingsForm : Form
 
         var runtimeSection = CreateSettingsSection("Schedule", actionRow);
 
-        panel.Controls.Add(locationSection);
-        panel.Controls.Add(reminderSection);
-        panel.Controls.Add(prayerSection);
-        panel.Controls.Add(runtimeSection);
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        stack.Controls.Add(locationSection, 0, 0);
+        stack.Controls.Add(reminderSection, 0, 1);
+        stack.Controls.Add(prayerSection, 0, 2);
+        stack.Controls.Add(runtimeSection, 0, 3);
+        panel.Controls.Add(stack);
 
         void ResizeSections()
         {
             var width = Math.Max(260, panel.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 6);
-            foreach (Control control in panel.Controls)
+            stack.Width = width;
+            foreach (Control control in stack.Controls)
             {
                 control.Width = width;
             }
         }
 
         panel.SizeChanged += (_, _) => ResizeSections();
-        panel.ControlAdded += (_, _) => ResizeSections();
         ResizeSections();
         panel.ResumeLayout(performLayout: true);
         return panel;
@@ -577,14 +592,13 @@ internal sealed class SettingsForm : Form
     private static CardPanel CreateSettingsSection(string title, Control content)
     {
         var card = CreateCard();
-        card.AutoSize = true;
-        card.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        card.Dock = DockStyle.Top;
         card.Padding = new Padding(14, 14, 14, 12);
         card.Margin = new Padding(0, 0, 0, 12);
 
         var layout = new TableLayoutPanel
         {
-            Dock = DockStyle.Top,
+            Dock = DockStyle.Fill,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             ColumnCount = 1,
