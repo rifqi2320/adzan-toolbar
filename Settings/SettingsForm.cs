@@ -20,6 +20,7 @@ internal sealed class SettingsForm : Form
     private ComboBox _countryComboBox = null!;
     private ComboBox _cityComboBox = null!;
     private NumericUpDown _leadMinutesNumeric = null!;
+    private CheckBox _startOnLoginCheckBox = null!;
     private CheckBox _fajrCheckBox = null!;
     private CheckBox _dhuhrCheckBox = null!;
     private CheckBox _asrCheckBox = null!;
@@ -180,6 +181,8 @@ internal sealed class SettingsForm : Form
         };
         IslamicTheme.StyleInput(_leadMinutesNumeric);
 
+        _startOnLoginCheckBox = CreatePrayerToggle("Start on Windows login", _settings.StartOnLogin);
+
         _fajrCheckBox = CreatePrayerToggle("Fajr", _settings.Prayers.Fajr);
         _dhuhrCheckBox = CreatePrayerToggle("Dhuhr", _settings.Prayers.Dhuhr);
         _asrCheckBox = CreatePrayerToggle("Asr", _settings.Prayers.Asr);
@@ -224,7 +227,9 @@ internal sealed class SettingsForm : Form
 
         var reminderSection = CreateSettingsSection(
             "Reminder",
-            CreateSectionStack(CreateField("Lead Minutes", _leadMinutesNumeric)));
+            CreateSectionStack(
+                CreateField("Lead Minutes", _leadMinutesNumeric),
+                _startOnLoginCheckBox));
 
         var prayerSection = CreateSettingsSection("Prayers", prayerPanel);
 
@@ -379,6 +384,7 @@ internal sealed class SettingsForm : Form
             City = city,
             Country = country,
             ReminderLeadMinutes = Decimal.ToInt32(_leadMinutesNumeric.Value),
+            StartOnLogin = _startOnLoginCheckBox.Checked,
             Prayers = new PrayerPreferences
             {
                 Fajr = _fajrCheckBox.Checked,
@@ -665,6 +671,7 @@ internal sealed class SettingsForm : Form
             City = settings.City,
             Country = settings.Country,
             ReminderLeadMinutes = settings.ReminderLeadMinutes,
+            StartOnLogin = settings.StartOnLogin,
             Prayers = new PrayerPreferences
             {
                 Fajr = settings.Prayers.Fajr,

@@ -8,6 +8,8 @@ internal sealed class AppSettings
 
     public int ReminderLeadMinutes { get; set; } = 0;
 
+    public bool StartOnLogin { get; set; }
+
     public PrayerPreferences Prayers { get; set; } = new();
 
     public List<SavedLocation> RecentLocations { get; set; } = [];

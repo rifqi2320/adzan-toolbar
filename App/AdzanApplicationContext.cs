@@ -13,6 +13,7 @@ namespace AdzanToolbar.App;
 internal sealed class AdzanApplicationContext : ApplicationContext
 {
     private readonly JsonSettingsStore _settingsStore;
+    private readonly StartupManager _startupManager;
     private readonly TrayHost _trayHost;
     private readonly PopupNotifier _notifier;
     private readonly AlAdhanClient _adhanClient;
@@ -25,6 +26,7 @@ internal sealed class AdzanApplicationContext : ApplicationContext
     public AdzanApplicationContext()
     {
         _settingsStore = new JsonSettingsStore();
+        _startupManager = new StartupManager();
         var settings = _settingsStore.Load();
 
         _trayHost = new TrayHost();
@@ -48,6 +50,7 @@ internal sealed class AdzanApplicationContext : ApplicationContext
     {
         try
         {
+            TryApplyStartupSetting(settings.StartOnLogin);
             _trayHost.SetStatus("Starting scheduler...");
             await _scheduler.StartAsync(settings);
         }
@@ -73,6 +76,7 @@ internal sealed class AdzanApplicationContext : ApplicationContext
         _settingsForm.SettingsSaved += async (_, savedSettings) =>
         {
             _settingsStore.Save(savedSettings);
+            TryApplyStartupSetting(savedSettings.StartOnLogin);
             await RestartSchedulerAsync(savedSettings);
         };
 
@@ -97,6 +101,18 @@ internal sealed class AdzanApplicationContext : ApplicationContext
         {
             _trayHost.ShowError($"Restart failed: {ex.Message}");
             _trayHost.SetStatus("Scheduler restart failed");
+        }
+    }
+
+    private void TryApplyStartupSetting(bool enabled)
+    {
+        try
+        {
+            _startupManager.Apply(enabled);
+        }
+        catch (Exception ex)
+        {
+            _trayHost.ShowError($"Startup setting failed: {ex.Message}");
         }
     }
 
