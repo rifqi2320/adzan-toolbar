@@ -13,32 +13,43 @@ internal sealed class AdhanPopupForm : Form
 
     private readonly System.Windows.Forms.Timer _fadeTimer;
     private readonly System.Windows.Forms.Timer _lifetimeTimer;
-    private readonly Label _titleLabel;
-    private readonly Label _subtitleLabel;
-    private readonly Label _prayerLabel;
-    private readonly Label _timeLabel;
     private bool _fadingOut;
 
     public AdhanPopupForm(string title, string subtitle, string prayerName, string prayerTime)
     {
+        SuspendLayout();
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
         TopMost = true;
         BackColor = IslamicTheme.Emerald900;
-        Size = new Size(360, 190);
-        Padding = new Padding(18);
+        Size = new Size(420, 228);
+        Padding = new Padding(0);
         DoubleBuffered = true;
         Opacity = 0;
 
-        var outerPanel = new Panel
+        var card = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(18),
-            BackColor = IslamicTheme.Emerald900
+            Padding = new Padding(22, 20, 22, 18),
+            BackColor = Color.Transparent
         };
 
-        _titleLabel = new Label
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 4,
+            BackColor = Color.Transparent
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 122));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 18));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+
+        var titleLabel = new Label
         {
             Dock = DockStyle.Top,
             Height = 24,
@@ -47,51 +58,138 @@ internal sealed class AdhanPopupForm : Form
             ForeColor = IslamicTheme.Gold300
         };
 
-        _subtitleLabel = new Label
+        var subtitleLabel = new Label
         {
             Dock = DockStyle.Top,
-            Height = 24,
+            Height = 20,
             Text = subtitle,
             Font = IslamicTheme.BodyFont(9.5f),
             ForeColor = Color.FromArgb(220, IslamicTheme.Parchment)
         };
 
-        _prayerLabel = new Label
+        var topStack = new TableLayoutPanel
         {
-            Dock = DockStyle.Top,
-            Height = 54,
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        topStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+        topStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
+        topStack.Controls.Add(subtitleLabel);
+        topStack.Controls.Add(titleLabel);
+        topStack.SetCellPosition(titleLabel, new TableLayoutPanelCellPosition(0, 0));
+        topStack.SetCellPosition(subtitleLabel, new TableLayoutPanelCellPosition(0, 1));
+
+        var prayerLabel = new Label
+        {
+            Dock = DockStyle.Fill,
             Text = prayerName,
-            Font = IslamicTheme.HeaderFont(24f),
+            Font = IslamicTheme.HeaderFont(26f),
             ForeColor = IslamicTheme.Parchment,
-            Padding = new Padding(0, 16, 0, 0)
+            AutoEllipsis = true
         };
 
-        _timeLabel = new Label
+        var messageLabel = new Label
         {
             Dock = DockStyle.Top,
-            Height = 38,
-            Text = prayerTime,
-            Font = IslamicTheme.BodyFont(18f, FontStyle.Bold),
-            ForeColor = IslamicTheme.Gold300
+            Height = 26,
+            Text = "Time for prayer",
+            Font = IslamicTheme.BodyFont(10.5f),
+            ForeColor = Color.FromArgb(224, IslamicTheme.Parchment)
         };
+
+        var centerStack = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+        centerStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        centerStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        centerStack.Controls.Add(prayerLabel, 0, 0);
+        centerStack.Controls.Add(messageLabel, 0, 1);
+
+        var timeCard = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(12, 4, 0, 10),
+            Padding = new Padding(14, 12, 14, 12),
+            BackColor = Color.FromArgb(36, IslamicTheme.Gold300)
+        };
+
+        var timeCaption = new Label
+        {
+            Dock = DockStyle.Top,
+            Height = 20,
+            Text = "Scheduled",
+            Font = IslamicTheme.BodyFont(9f, FontStyle.Bold),
+            ForeColor = IslamicTheme.Emerald900,
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+
+        var timeLabel = new Label
+        {
+            Dock = DockStyle.Fill,
+            Text = prayerTime,
+            Font = IslamicTheme.HeaderFont(20f),
+            ForeColor = IslamicTheme.Emerald900,
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+        var timeStack = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent
+        };
+        timeStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
+        timeStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        timeStack.Controls.Add(timeCaption, 0, 0);
+        timeStack.Controls.Add(timeLabel, 0, 1);
+        timeCard.Controls.Add(timeStack);
 
         var dismissButton = new Button
         {
             Text = "Dismiss",
-            Dock = DockStyle.Bottom
+            Anchor = AnchorStyles.Right,
+            Width = 108
         };
-        IslamicTheme.StyleButton(dismissButton, primary: false);
-        dismissButton.Width = 96;
-        dismissButton.Height = 34;
-        dismissButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+        IslamicTheme.StyleFlatActionButton(dismissButton);
         dismissButton.Click += (_, _) => BeginFadeOut();
 
-        outerPanel.Controls.Add(dismissButton);
-        outerPanel.Controls.Add(_timeLabel);
-        outerPanel.Controls.Add(_prayerLabel);
-        outerPanel.Controls.Add(_subtitleLabel);
-        outerPanel.Controls.Add(_titleLabel);
-        Controls.Add(outerPanel);
+        var footerPanel = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+        footerPanel.Controls.Add(dismissButton);
+
+        var accentLine = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Height = 2,
+            BackColor = Color.FromArgb(100, IslamicTheme.Gold300),
+            Margin = new Padding(0, 2, 0, 12)
+        };
+
+        layout.Controls.Add(topStack, 0, 0);
+        layout.SetColumnSpan(topStack, 2);
+        layout.Controls.Add(accentLine, 0, 1);
+        layout.SetColumnSpan(accentLine, 2);
+        layout.Controls.Add(centerStack, 0, 2);
+        layout.Controls.Add(timeCard, 1, 2);
+        layout.Controls.Add(footerPanel, 0, 3);
+        layout.SetColumnSpan(footerPanel, 2);
+
+        card.Controls.Add(layout);
+        Controls.Add(card);
 
         _fadeTimer = new System.Windows.Forms.Timer { Interval = 20 };
         _fadeTimer.Tick += (_, _) => HandleFadeTick();
@@ -110,8 +208,11 @@ internal sealed class AdhanPopupForm : Form
             _lifetimeTimer.Start();
         };
         Click += (_, _) => BeginFadeOut();
-        outerPanel.Click += (_, _) => BeginFadeOut();
+        card.Click += (_, _) => BeginFadeOut();
+        ResumeLayout(performLayout: true);
     }
+
+    protected override bool ShowWithoutActivation => true;
 
     protected override CreateParams CreateParams
     {

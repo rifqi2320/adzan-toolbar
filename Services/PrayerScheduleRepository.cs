@@ -28,7 +28,7 @@ internal sealed class PrayerScheduleRepository
 
     public async Task<IReadOnlyList<PrayerDaySchedule>> GetPrayerWeekAsync(string city, string country, CancellationToken cancellationToken)
     {
-        var startDate = DateOnly.FromDateTime(DateTime.Today);
+        var startDate = DateOnly.FromDateTime(DateTime.Today).AddDays(-3);
         return await GetPrayerDaysAsync(city, country, startDate, 7, cancellationToken).ConfigureAwait(false);
     }
 
