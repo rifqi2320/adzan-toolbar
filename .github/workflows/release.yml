@@ -114,7 +114,7 @@ jobs:
           if ($env:RELEASE_NOTES) {
             Set-Content -Path RELEASE_NOTES.md -Value $env:RELEASE_NOTES
             exit 0
-          fi
+          }
 
           @"
           Release $env:VERSION
