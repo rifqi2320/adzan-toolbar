@@ -16,8 +16,7 @@
       Root="HKLM"
       Key="SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App"
       Result="exists"
-      Variable="DesktopRuntimeInstalled"
-      Win64="yes" />
+      Variable="DesktopRuntimeInstalled" />
 
     <Chain>
       <ExePackage
