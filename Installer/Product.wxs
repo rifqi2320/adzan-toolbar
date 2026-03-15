@@ -1,0 +1,66 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Adzan Toolbar"
+    Manufacturer="Rifqi"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="A9A9C28C-53AF-4A74-AEA6-DCEB199A7EE4"
+    InstallerVersion="500"
+    Scope="perMachine"
+    Compressed="yes">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Feature Id="MainFeature" Title="Adzan Toolbar" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="CompanyFolder" Name="Rifqi">
+        <Directory Id="INSTALLFOLDER" Name="Adzan Toolbar" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Adzan Toolbar" />
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      <Component Id="MainExecutableComponent" Guid="*">
+        <File Id="MainExecutableFile" Source="$(var.PublishDir)\AdzanToolbar.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="MainLibraryComponent" Guid="*">
+        <File Id="MainLibraryFile" Source="$(var.PublishDir)\AdzanToolbar.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="DepsJsonComponent" Guid="*">
+        <File Id="DepsJsonFile" Source="$(var.PublishDir)\AdzanToolbar.deps.json" KeyPath="yes" />
+      </Component>
+      <Component Id="RuntimeConfigComponent" Guid="*">
+        <File Id="RuntimeConfigFile" Source="$(var.PublishDir)\AdzanToolbar.runtimeconfig.json" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="*">
+      <Shortcut
+        Id="ApplicationStartMenuShortcut"
+        Name="Adzan Toolbar"
+        Description="Adhan reminder tray app"
+        Target="[INSTALLFOLDER]AdzanToolbar.exe"
+        WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Rifqi\AdzanToolbar"
+        Name="Installed"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout selected ref
@@ -34,83 +34,94 @@ jobs:
           VERSION: ${{ inputs.version }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          if gh release view "$VERSION" --repo "$REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $VERSION already exists."
+          gh release view "$env:VERSION" --repo "$env:REPOSITORY" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $env:VERSION already exists."
             exit 1
-          fi
+          }
 
       - name: Restore dependencies
         run: dotnet restore -r win-x64
 
+      - name: Install WiX tool
+        run: |
+          dotnet clean -c Release -r win-x64
+          dotnet tool install --global wix --version 5.0.2
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Publish framework-dependent build
         run: |
-          rm -rf artifacts/framework-dependent
+          Remove-Item artifacts/framework-dependent -Recurse -Force -ErrorAction SilentlyContinue
           dotnet clean -c Release -r win-x64
           dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=false /p:DebugType=None /p:DebugSymbols=false -o artifacts/framework-dependent
 
       - name: Publish self-contained build
         run: |
-          rm -rf artifacts/self-contained
+          Remove-Item artifacts/self-contained -Recurse -Force -ErrorAction SilentlyContinue
           dotnet clean -c Release -r win-x64
           dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false -o artifacts/self-contained
 
+      - name: Build MSI installer
+        env:
+          PRODUCT_VERSION: ${{ inputs.version }}
+        run: |
+          $normalizedVersion = $env:PRODUCT_VERSION.TrimStart('v')
+          Remove-Item artifacts/release -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path artifacts/release | Out-Null
+          wix build `
+            -arch x64 `
+            -d PublishDir="$pwd\artifacts\framework-dependent" `
+            -d ProductVersion="$normalizedVersion" `
+            -o artifacts\release\AdzanToolbar-win-x64-installer.msi `
+            Installer\Product.wxs
+
       - name: Prepare release assets
         run: |
-          rm -rf artifacts/release
-          mkdir -p artifacts/release
-          (
-            cd artifacts/framework-dependent
-            zip -9 ../release/AdzanToolbar-win-x64-framework-dependent.zip \
-              AdzanToolbar.exe \
-              AdzanToolbar.dll \
-              AdzanToolbar.deps.json \
-              AdzanToolbar.runtimeconfig.json
-          )
-          cp artifacts/self-contained/AdzanToolbar.exe artifacts/release/AdzanToolbar-win-x64-self-contained.exe
+          Copy-Item artifacts/self-contained/AdzanToolbar.exe artifacts/release/AdzanToolbar-win-x64-standalone.exe
 
       - name: Validate release asset sizes
         run: |
-          framework_zip_size=$(stat -c%s artifacts/release/AdzanToolbar-win-x64-framework-dependent.zip)
-          self_contained_size=$(stat -c%s artifacts/release/AdzanToolbar-win-x64-self-contained.exe)
+          $msiSize = (Get-Item artifacts/release/AdzanToolbar-win-x64-installer.msi).Length
+          $standaloneSize = (Get-Item artifacts/release/AdzanToolbar-win-x64-standalone.exe).Length
 
-          echo "Framework-dependent zip size: $framework_zip_size bytes"
-          echo "Self-contained exe size: $self_contained_size bytes"
+          Write-Host "MSI size: $msiSize bytes"
+          Write-Host "Standalone exe size: $standaloneSize bytes"
 
-          if [ "$framework_zip_size" -gt 5000000 ]; then
-            echo "Framework-dependent package is unexpectedly large."
+          if ($msiSize -lt 50000 -or $msiSize -gt 10000000) {
+            Write-Host "MSI package size is outside the expected range."
             exit 1
-          fi
+          }
 
-          if [ "$self_contained_size" -lt 40000000 ] || [ "$self_contained_size" -gt 120000000 ]; then
-            echo "Self-contained package size is outside the expected range."
+          if ($standaloneSize -lt 40000000 -or $standaloneSize -gt 120000000) {
+            Write-Host "Standalone package size is outside the expected range."
             exit 1
-          fi
+          }
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: adzan-toolbar-${{ inputs.version }}
           path: |
-            artifacts/release/AdzanToolbar-win-x64-framework-dependent.zip
-            artifacts/release/AdzanToolbar-win-x64-self-contained.exe
+            artifacts/release/AdzanToolbar-win-x64-installer.msi
+            artifacts/release/AdzanToolbar-win-x64-standalone.exe
 
       - name: Prepare release notes
         env:
           VERSION: ${{ inputs.version }}
           RELEASE_NOTES: ${{ inputs.release_notes }}
         run: |
-          if [ -n "$RELEASE_NOTES" ]; then
-            printf '%s\n' "$RELEASE_NOTES" > RELEASE_NOTES.md
+          if ($env:RELEASE_NOTES) {
+            Set-Content -Path RELEASE_NOTES.md -Value $env:RELEASE_NOTES
             exit 0
           fi
 
-          cat > RELEASE_NOTES.md <<EOF
-          Release $VERSION
+          @"
+          Release $env:VERSION
 
           Assets:
-          - AdzanToolbar-win-x64-framework-dependent.zip: small build, requires .NET 8 Windows Desktop Runtime
-          - AdzanToolbar-win-x64-self-contained.exe: larger single-file build with runtime included
-          EOF
+          - AdzanToolbar-win-x64-installer.msi: Windows installer, requires .NET 8 Windows Desktop Runtime
+          - AdzanToolbar-win-x64-standalone.exe: larger single-file build with runtime included
+          "@ | Set-Content -Path RELEASE_NOTES.md
 
       - name: Create GitHub release
         env:
@@ -118,10 +129,10 @@ jobs:
           VERSION: ${{ inputs.version }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          gh release create "$VERSION" \
-            artifacts/release/AdzanToolbar-win-x64-framework-dependent.zip \
-            artifacts/release/AdzanToolbar-win-x64-self-contained.exe \
-            --repo "$REPOSITORY" \
-            --target "${GITHUB_SHA}" \
-            --title "$VERSION" \
+          gh release create "$env:VERSION" `
+            artifacts/release/AdzanToolbar-win-x64-installer.msi `
+            artifacts/release/AdzanToolbar-win-x64-standalone.exe `
+            --repo "$env:REPOSITORY" `
+            --target "$env:GITHUB_SHA" `
+            --title "$env:VERSION" `
             --notes-file RELEASE_NOTES.md
