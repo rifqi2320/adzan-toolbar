@@ -1,0 +1,94 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to create, for example v0.0.4
+        required: true
+        type: string
+      release_notes:
+        description: Optional release notes. Leave empty to use the default template.
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout selected ref
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Fail if release already exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if gh release view "$VERSION" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists."
+            exit 1
+          fi
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish framework-dependent build
+        run: dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true -o artifacts/framework-dependent
+
+      - name: Publish self-contained build
+        run: dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true -o artifacts/self-contained
+
+      - name: Prepare release assets
+        run: |
+          cp artifacts/framework-dependent/AdzanToolbar.exe artifacts/framework-dependent/AdzanToolbar-win-x64-framework-dependent.exe
+          cp artifacts/self-contained/AdzanToolbar.exe artifacts/self-contained/AdzanToolbar-win-x64-self-contained.exe
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: adzan-toolbar-${{ inputs.version }}
+          path: |
+            artifacts/framework-dependent/AdzanToolbar-win-x64-framework-dependent.exe
+            artifacts/self-contained/AdzanToolbar-win-x64-self-contained.exe
+
+      - name: Prepare release notes
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          if [ -n "$RELEASE_NOTES" ]; then
+            printf '%s\n' "$RELEASE_NOTES" > RELEASE_NOTES.md
+            exit 0
+          fi
+
+          cat > RELEASE_NOTES.md <<EOF
+          Release $VERSION
+
+          Assets:
+          - AdzanToolbar-win-x64-framework-dependent.exe: small single-file build, requires .NET 8 Windows Desktop Runtime
+          - AdzanToolbar-win-x64-self-contained.exe: larger single-file build with runtime included
+          EOF
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh release create "$VERSION" \
+            artifacts/framework-dependent/AdzanToolbar-win-x64-framework-dependent.exe \
+            artifacts/self-contained/AdzanToolbar-win-x64-self-contained.exe \
+            --repo "$REPOSITORY" \
+            --target "${GITHUB_SHA}" \
+            --title "$VERSION" \
+            --notes-file RELEASE_NOTES.md

@@ -38,6 +38,24 @@ Smaller single-file Windows build that uses the installed .NET Desktop Runtime:
 dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true /p:EnableCompressionInSingleFile=true
 ```
 
+## GitHub Release Pipeline
+
+This repository includes a manual GitHub Actions workflow at `.github/workflows/release.yml`.
+
+Use it from the GitHub Actions tab:
+
+1. Open `Actions`
+2. Choose `Manual Release`
+3. Click `Run workflow`
+4. Enter a tag such as `v0.0.4`
+
+The workflow builds and publishes both assets:
+
+- `AdzanToolbar-win-x64-framework-dependent.exe`
+- `AdzanToolbar-win-x64-self-contained.exe`
+
+It then creates the GitHub release for that tag automatically.
+
 ## Notes
 
 - The calculation method is fixed to `20` (KEMENAG Indonesia).
