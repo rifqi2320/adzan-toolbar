@@ -40,7 +40,7 @@ jobs:
           fi
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore -r win-x64
 
       - name: Publish framework-dependent build
         run: |
